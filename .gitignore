@@ -1,0 +1,18 @@
+# Python specific
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+.venv/  # If you use a virtual environment named .venv
+venv/   # If you use a virtual environment named venv
+*.env   # For environment variables file, if you store API keys locally (though we use os.getenv)
+
+# Docker specific
+*.dockerignore # The .dockerignore itself should be tracked, but internal generated files might be ignored
+
+# macOS specific
+.DS_Store
+
+# Temporary files, logs
+*.log
+*.tmp

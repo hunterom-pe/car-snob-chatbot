@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professor Torque's Automotive Oracle</title> <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom scrollbar for better aesthetics */
+        .chat-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+        .chat-messages::-webkit-scrollbar-track {
+            background: #1f2937; /* Darker gray for track */
+        }
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #4b5563; /* Medium gray for thumb */
+            border-radius: 4px;
+        }
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: #6b7280; /* Lighter gray on hover */
+        }
+        /* Basic animation for typing indicator */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .animate-pulse-custom {
+            animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 flex items-center justify-center min-h-screen p-4">
+    <div class="bg-gray-800 rounded-lg shadow-xl w-full max-w-xl flex flex-col h-[80vh]">
+        <div class="p-4 border-b border-gray-700 flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-center flex-grow">Professor Torque's Automotive Oracle</h1> <button
+                id="clear-chat-button"
+                onclick="clearChat()"
+                class="bg-red-700 hover:bg-red-800 text-white font-bold py-2 px-4 rounded-md text-sm transition duration-200 ml-4"
+            >
+                New Chat
+            </button>
+        </div>
+
+        <div id="initial-insight" class="bg-blue-600 text-white p-3 m-4 rounded-md text-sm">
+            Professor Torque's First Insight: {{ initial_insight }}
+        </div>
+
+        <div id="chat-box" class="flex-1 p-4 overflow-y-auto chat-messages">
+            </div>
+
+        <div class="p-4 border-t border-gray-700 flex items-center">
+            <input
+                type="text"
+                id="user-input"
+                class="flex-1 p-3 rounded-l-md bg-gray-700 text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Engage Professor Torque about matters of true automotive significance..." onkeypress="if(event.key === 'Enter') sendMessage()"
+            />
+            <button
+                id="send-button"
+                onclick="sendMessage()"
+                class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-r-md transition duration-200"
+            >
+                Enlighten Me
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let chatHistory = [];
+
+        function displayMessage(message, sender) {
+            const chatBox = document.getElementById('chat-box');
+            const messageDiv = document.createElement('div');
+            let senderClass = '';
+            let bgColor = '';
+            let textColor = '';
+            let avatar = '';
+
+            if (sender === 'user') {
+                senderClass = 'flex justify-end';
+                bgColor = 'bg-blue-600';
+                textColor = 'text-white';
+                avatar = '<span class="w-8 h-8 rounded-full bg-blue-700 flex items-center justify-center text-xs font-bold mr-2">You</span>'; // Simple avatar
+            } else { // 'bot'
+                senderClass = 'flex justify-start';
+                bgColor = 'bg-gray-700';
+                textColor = 'text-gray-100';
+                avatar = '<span class="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center text-xs font-bold ml-2">PT</span>'; // Simple bot avatar
+            }
+
+            messageDiv.className = `${senderClass} mb-4 items-end`; // Align messages at the bottom
+            // Order avatar based on sender
+            messageDiv.innerHTML = `
+                ${sender === 'bot' ? avatar : ''}
+                <div class="${bgColor} ${textColor} p-3 rounded-lg max-w-[70%]">
+                    ${message}
+                </div>
+                ${sender === 'user' ? avatar : ''}
+            `;
+            chatBox.appendChild(messageDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function showTypingIndicator() {
+            const chatBox = document.getElementById('chat-box');
+            const indicatorDiv = document.createElement('div');
+            indicatorDiv.id = 'typing-indicator';
+            indicatorDiv.className = 'flex justify-start mb-4 items-end'; // Align with bot messages
+            indicatorDiv.innerHTML = `
+                <span class="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center text-xs font-bold ml-2">PT</span>
+                <div class="bg-gray-700 text-gray-100 p-3 rounded-lg max-w-[70%] animate-pulse-custom"> Professor Torque is contemplating...
+                </div>
+            `;
+            chatBox.appendChild(indicatorDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function hideTypingIndicator() {
+            const indicator = document.getElementById('typing-indicator');
+            if (indicator) {
+                indicator.remove();
+            }
+        }
+
+        // --- New Function: Clear Chat History and UI ---
+        function clearChat() {
+            chatHistory = []; // Reset the JavaScript history array
+            document.getElementById('chat-box').innerHTML = ''; // Clear messages from display
+            // Optionally re-display initial insight if needed, though it's sticky
+            console.log("Chat history cleared.");
+        }
+
+        async function sendMessage() {
+            const userInput = document.getElementById('user-input');
+            const message = userInput.value.trim();
+            if (message === '') return;
+
+            displayMessage(message, 'user');
+            showTypingIndicator();
+            userInput.value = '';
+            document.getElementById('send-button').disabled = true;
+
+            chatHistory.push({"role": "user", "parts": [{"text": message}]});
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message: message, history: chatHistory }),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.response || 'Network response was not ok');
+                }
+
+                const data = await response.json();
+                hideTypingIndicator();
+                displayMessage(data.response, 'bot');
+                chatHistory = data.history;
+
+            } catch (error) {
+                hideTypingIndicator();
+                console.error('Error sending message:', error);
+                displayMessage(`Error: Could not get a response. ${error.message}`, 'bot');
+            } finally {
+                document.getElementById('send-button').disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
