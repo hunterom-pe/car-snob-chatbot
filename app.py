@@ -4,7 +4,7 @@ import google.generativeai as genai
 import json
 import logging
 # Import types for function calling
-from google.generativeai.types import Tool, FunctionCallingConfig, FunctionDeclaration
+from google.generativeai.types import Tool, FunctionDeclaration
 
 app = Flask(__name__)
 
